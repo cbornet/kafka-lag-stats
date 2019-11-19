@@ -258,10 +258,21 @@ class KafkaLagServiceTest {
 
     @Test
     void getSpeedStats() {
-        // 1. Mocker getConsumerSpeeds
-        // 2. Tester une liste de speed dont un des speeds est null
-        // 3. Ajouter toString et equals/hashcode à SpeedStats
-        // 4. Vérifier que le résultat est ce qu'on attend.
+        Instant now = Instant.now();
+        Instant oneSecondAgo = now.minusSeconds(1);
+        Instant twoSecondsAgo = now.minusSeconds(2);
+        List<Instant> samplingInstants = Arrays.asList(now, twoSecondsAgo, oneSecondAgo);
+
+        List<MessageSpeed> inputSpeeds = Arrays.asList(
+            new MessageSpeed(1000d, now, null),
+            new MessageSpeed(null, now, null),
+            new MessageSpeed(0d, now, null)
+        );
+        doReturn(inputSpeeds).when(lagService).getConsumerSpeeds(TEST_GROUP,TEST_TOPIC_PARTITION,samplingInstants);
+
+        SpeedStats speedStats = lagService.getSpeedStats(TEST_GROUP,TEST_TOPIC_PARTITION, samplingInstants);
+
+        assertThat(speedStats).isEqualTo(new SpeedStats(new DoubleStats(500d,500d), inputSpeeds));
     }
 
     private BlockingQueue<OffsetPoint> mockGetGroupOffsetPoints() {
