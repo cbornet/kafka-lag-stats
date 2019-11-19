@@ -64,7 +64,6 @@ public class KafkaApp implements InitializingBean {
         DefaultProfileUtil.addDefaultProfile(app);
         ConfigurableApplicationContext applicationContext = app.run(args);
         applicationContext.getBean(KafkaKafkaProducer.class).init();
-        applicationContext.getBean(KafkaKafkaConsumer.class).start();
         Environment env = applicationContext.getEnvironment();
         logApplicationStartup(env);
     }

@@ -38,6 +38,15 @@ public class KafkaKafkaProducer {
         }
     }
 
+    public void send(String message, String key) {
+        ProducerRecord<String, String> record = new ProducerRecord<>(TOPIC, key, message);
+        try {
+            kafkaProducer.send(record);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+    }
+
     public void shutdown() {
         log.info("Shutdown Kafka producer");
         kafkaProducer.close();

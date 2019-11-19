@@ -55,13 +55,12 @@ public class KafkaKafkaResourceIT {
 
     @BeforeEach
     public void setup() {
-        KafkaKafkaResource kafkaResource = new KafkaKafkaResource(producer);
+        //KafkaKafkaResource kafkaResource = new KafkaKafkaResource(producer);
 
-        this.restMockMvc = MockMvcBuilders.standaloneSetup(kafkaResource)
-            .build();
+        //this.restMockMvc = MockMvcBuilders.standaloneSetup(kafkaResource)
+        //    .build();
 
         producer.init();
-        consumer.start();
     }
 
     @Test

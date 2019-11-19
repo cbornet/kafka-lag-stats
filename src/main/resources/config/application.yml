@@ -138,12 +138,17 @@ jhipster:
     license:
     license-url:
 kafka:
+  bootstrap.servers: localhost:9092
   consumer:
     key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
     value.deserializer: org.apache.kafka.common.serialization.StringDeserializer
     bootstrap.servers: localhost:9092
     group.id: kafka
     auto.offset.reset: earliest
+    max:
+      poll:
+        records: 50
+
   producer:
     key.serializer: org.apache.kafka.common.serialization.StringSerializer
     value.serializer: org.apache.kafka.common.serialization.StringSerializer
