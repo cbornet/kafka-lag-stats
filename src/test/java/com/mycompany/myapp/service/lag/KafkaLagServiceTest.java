@@ -1,9 +1,9 @@
 package com.mycompany.myapp.service.lag;
-
 import com.mycompany.myapp.config.KafkaProperties;
 import com.mycompany.myapp.service.lag.KafkaLagService.OffsetAndInstant;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
+
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -12,7 +12,6 @@ import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.TopicPartition;
 
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,6 +27,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -348,6 +348,25 @@ class KafkaLagServiceTest {
 
         assertThat(timeRemaining).isEqualTo(new TimeRemaining(TEST_PARTITION, 0.024d, messageLag, speedStats));
     }
+
+    @Test
+    void getTimeRemainingStats() throws ExecutionException, InterruptedException {
+        startTestcontainer();
+        Instant now = Instant.now();
+        DoubleStats meanTimeOverPartitions = new DoubleStats(7.5d,4.6097722286464435d);
+        Integer[] keys = IntStream.range(0, 16).boxed().toArray(Integer[]::new);
+        Stream<TimeRemaining> stream = IntStream.range(0, 16).mapToObj(i -> new TimeRemaining(i, i, null, null));
+        Iterator<TimeRemaining> iterator = stream.iterator();
+
+        doAnswer(i -> iterator.next())
+            .when(lagService).getTimeRemaining(eq(TEST_GROUP), any(TopicPartition.class), eq(now.toString()), anyList());
+
+        TimeRemainingStats timeRemainingStats = lagService.getTimeRemainingStats(TEST_GROUP,TEST_TOPIC, now.toString(), Collections.singletonList(now));
+
+        assertThat(timeRemainingStats.getMeanTimeOverPartitions()).isEqualTo(meanTimeOverPartitions);
+        assertThat(timeRemainingStats.getPartitionTimesRemaining()).containsOnlyKeys(keys);
+    }
+
 
     private BlockingQueue<OffsetPoint> mockGetGroupOffsetPoints() {
         BlockingQueue<OffsetPoint> offsetPoints = new LinkedBlockingQueue<>();

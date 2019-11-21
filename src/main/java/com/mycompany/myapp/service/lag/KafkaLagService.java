@@ -32,7 +32,7 @@ public class KafkaLagService {
         this.client = client;
     }
 
-    public static DoubleStats stddev(List<Double> doubles) {
+    static DoubleStats stddev(List<Double> doubles) {
         double sum = 0.0;
         for (Double i : doubles) {
             sum+=i;
