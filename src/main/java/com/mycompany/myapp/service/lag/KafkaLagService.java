@@ -32,7 +32,7 @@ public class KafkaLagService {
         this.client = client;
     }
 
-    public static DoubleStats stddev(List<Double> doubles) {
+    static DoubleStats stddev(List<Double> doubles) {
         double sum = 0.0;
         for (Double i : doubles) {
             sum+=i;
@@ -94,31 +94,31 @@ public class KafkaLagService {
         }
 
         return Optional.of( pointBefore.getOffsets().get(tp) +
-                (pointAfter.getOffsets().get(tp) - pointBefore.getOffsets().get(tp))
-                        * (instant.toEpochMilli() - pointBefore.getTimestamp().toEpochMilli())
-                        / (pointAfter.getTimestamp().toEpochMilli() - pointBefore.getTimestamp().toEpochMilli())
+            (pointAfter.getOffsets().get(tp) - pointBefore.getOffsets().get(tp))
+                * (instant.toEpochMilli() - pointBefore.getTimestamp().toEpochMilli())
+                / (pointAfter.getTimestamp().toEpochMilli() - pointBefore.getTimestamp().toEpochMilli())
         );
     }
 
     MessageLag getConsumerLag(String group, TopicPartition tp, Long producerOffset, Instant timestamp) {
         return getConsumerOffsetsFromReadings(group, tp, timestamp)
-                .map(consumerOffset -> new MessageLag(
-                        consumerOffset,
-                        producerOffset,
-                        Math.max(producerOffset - consumerOffset, 0),
-                        timestamp)
-                )
-                .orElse(new MessageLag(
-                        null,
-                        producerOffset,
-                        null,
-                        timestamp));
+            .map(consumerOffset -> new MessageLag(
+                consumerOffset,
+                producerOffset,
+                Math.max(producerOffset - consumerOffset, 0),
+                timestamp)
+            )
+            .orElse(new MessageLag(
+                null,
+                producerOffset,
+                null,
+                timestamp));
     }
 
     public List<MessageLag> getConsumerLags(String group, TopicPartition tp, List<Instant> samplingInstants) {
         return getProducerOffsets(tp, samplingInstants).stream()
-                .map(offset -> getConsumerLag(group, tp, offset.getOffset(), offset.getInstant()))
-                .collect(Collectors.toList());
+            .map(offset -> getConsumerLag(group, tp, offset.getOffset(), offset.getInstant()))
+            .collect(Collectors.toList());
     }
 
     public List<MessageSpeed> getConsumerSpeeds(String group, TopicPartition tp, List<Instant> samplingInstants) {
@@ -131,12 +131,12 @@ public class KafkaLagService {
             Long consumerOffset = consumerLag.getConsumerOffset();
             Double speed = null;
             if (consumerOffset != null &&
-                    previousLag != null &&
-                    previousLag.getConsumerOffset() != null &&
-                    consumerLag.getLagMessages() > 0 &&
-                    previousLag.getLagMessages() > 0) {
+                previousLag != null &&
+                previousLag.getConsumerOffset() != null &&
+                consumerLag.getLagMessages() > 0 &&
+                previousLag.getLagMessages() > 0) {
                 speed = (double)(consumerOffset - previousLag.getConsumerOffset()) * 1000
-                        / (consumerLag.getTimestamp().toEpochMilli() - previousLag.getTimestamp().toEpochMilli());
+                    / (consumerLag.getTimestamp().toEpochMilli() - previousLag.getTimestamp().toEpochMilli());
 
             }
             speeds.add(new MessageSpeed(speed, consumerLag.getTimestamp(), consumerLag));
@@ -149,31 +149,31 @@ public class KafkaLagService {
     public SpeedStats getSpeedStats(String group, TopicPartition topicPartition, List<Instant> samplingInstants) {
         List<MessageSpeed> messageSpeeds = getConsumerSpeeds(group, topicPartition, samplingInstants);
         List<Double> speeds = messageSpeeds
-                .stream()
-                .map(MessageSpeed::getSpeed)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+            .stream()
+            .map(MessageSpeed::getSpeed)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
         return new SpeedStats(stddev(speeds), messageSpeeds);
     }
 
-    private Optional<Long> getCurrentConsumerOffset(String group, TopicPartition topicPartition) throws InterruptedException, ExecutionException {
+    Optional<Long> getCurrentConsumerOffset(String group, TopicPartition topicPartition) throws InterruptedException, ExecutionException {
         return Optional.ofNullable(
-                client.listConsumerGroupOffsets(group)
-                        .partitionsToOffsetAndMetadata()
-                        .get()
-                        .get(topicPartition))
-                .map(OffsetAndMetadata::offset);
+            client.listConsumerGroupOffsets(group)
+                .partitionsToOffsetAndMetadata()
+                .get()
+                .get(topicPartition))
+            .map(OffsetAndMetadata::offset);
     }
 
     public MessageLag getMessagesToPublishTimestamp(String group, TopicPartition topicPartition, String publishTimestamp)
-            throws InterruptedException, ExecutionException {
+        throws InterruptedException, ExecutionException {
         return getCurrentConsumerOffset(group, topicPartition)
-                .map(offset -> {
-                    Instant publishInstant = publishTimestamp == null ? Instant.now() : Instant.parse(publishTimestamp);
-                    Long producerOffset = getProducerOffsets(topicPartition, Collections.singletonList(publishInstant)).get(0).getOffset();
-                    return new MessageLag(offset, producerOffset, producerOffset - offset, publishInstant);
-                })
-                .orElseThrow(() -> new KafkaLagService.OffsetNotFoundException("Couldn't find consumer offset for partition "  + topicPartition.toString()));
+            .map(offset -> {
+                Instant publishInstant = publishTimestamp == null ? Instant.now() : Instant.parse(publishTimestamp);
+                Long producerOffset = getProducerOffsets(topicPartition, Collections.singletonList(publishInstant)).get(0).getOffset();
+                return new MessageLag(offset, producerOffset, producerOffset - offset, publishInstant);
+            })
+            .orElseThrow(() -> new KafkaLagService.OffsetNotFoundException("Couldn't find consumer offset for partition "  + topicPartition.toString()));
 
     }
 
@@ -188,21 +188,21 @@ public class KafkaLagService {
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(kafkaProperties.getConsumerProps());
         List<Double> timesRemaining = new ArrayList<>();
         Map<Integer, TimeRemaining> timesRemainingInfo = consumer.partitionsFor(topic).stream()
-                .map(PartitionInfo::partition)
-                .map(partition -> {
-                    try {
-                        return getTimeRemaining(group, new TopicPartition(topic, partition), publishTimestamp, samplingInstants);
-                    } catch (ExecutionException | InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
+            .map(PartitionInfo::partition)
+            .map(partition -> {
+                try {
+                    return getTimeRemaining(group, new TopicPartition(topic, partition), publishTimestamp, samplingInstants);
+                } catch (ExecutionException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            })
+            .collect(Collectors.toMap(
+                TimeRemaining::getPartition,
+                t -> {
+                    timesRemaining.add(t.getTimeRemaining());
+                    return t;
                 })
-                .collect(Collectors.toMap(
-                        TimeRemaining::getPartition,
-                        t -> {
-                            timesRemaining.add(t.getTimeRemaining());
-                            return t;
-                        })
-                );
+            );
         DoubleStats stddev = stddev(timesRemaining);
         return new TimeRemainingStats(stddev, timesRemainingInfo);
     }
@@ -227,9 +227,9 @@ public class KafkaLagService {
         @Override
         public String toString() {
             return "OffsetAndInstant{" +
-                    "offset=" + offset +
-                    ", instant=" + instant +
-                    '}';
+                "offset=" + offset +
+                ", instant=" + instant +
+                '}';
         }
 
         @Override
@@ -238,7 +238,7 @@ public class KafkaLagService {
             if (o == null || getClass() != o.getClass()) return false;
             OffsetAndInstant that = (OffsetAndInstant) o;
             return Objects.equals(offset, that.offset) &&
-                    Objects.equals(instant, that.instant);
+                Objects.equals(instant, that.instant);
         }
 
         @Override
