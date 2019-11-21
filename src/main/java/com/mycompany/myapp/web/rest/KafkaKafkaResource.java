@@ -6,6 +6,7 @@ import com.mycompany.myapp.service.lag.*;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,9 +20,10 @@ import java.util.stream.IntStream;
 
 @RestController
 @RequestMapping("/api/kafka-kafka")
+@Profile("!test")
 public class KafkaKafkaResource {
 
-    public static final int NUMBER_OF_SAMPLING_INSTANTS = 10;
+    private static final int NUMBER_OF_SAMPLING_INSTANTS = 10;
     private final Logger log = LoggerFactory.getLogger(KafkaKafkaResource.class);
 
     private KafkaKafkaProducer kafkaProducer;
@@ -30,14 +32,14 @@ public class KafkaKafkaResource {
 
     private final Clock clock;
 
-    public KafkaKafkaResource(KafkaKafkaProducer kafkaProducer, KafkaProperties kafkaProperties, KafkaLagService lagService, Clock clock) {
+    public KafkaKafkaResource(KafkaKafkaProducer kafkaProducer, KafkaLagService lagService, Clock clock) {
         this.kafkaProducer = kafkaProducer;
         this.lagService = lagService;
         this.clock = clock;
     }
 
     @PostMapping("/publish")
-    public void sendMessageToKafkaTopic(@RequestParam("message") String message, @RequestParam("key") String key) {
+    public void sendMessageToKafkaTopic(@RequestParam("message") String message, @RequestParam(value = "key", required = false) String key) {
         log.debug("REST request to send to Kafka topic the message : {}", message);
         if(key == null) {
             this.kafkaProducer.send(message);

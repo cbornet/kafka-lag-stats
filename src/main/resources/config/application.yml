@@ -145,10 +145,6 @@ kafka:
     bootstrap.servers: localhost:9092
     group.id: kafka
     auto.offset.reset: earliest
-    max:
-      poll:
-        records: 50
-
   producer:
     key.serializer: org.apache.kafka.common.serialization.StringSerializer
     value.serializer: org.apache.kafka.common.serialization.StringSerializer
