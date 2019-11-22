@@ -113,7 +113,7 @@ public class KafkaKafkaResource {
         List<Instant> samplingInstants = getSamplingInstantsFromNow(NUMBER_OF_SAMPLING_INSTANTS);
         return lagService.getTimeRemainingStats(group, topic, publishTimestamp, samplingInstants);
     }
-    
+
     private TopicPartition getPartitionFromParams(String topic, Integer partition, String key) {
         if (partition == null && key == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Either partition or key must be specified");
@@ -128,7 +128,7 @@ public class KafkaKafkaResource {
         // Start 2 seconds ago to have high probability that the consumer offset has been read.
         Instant now = clock.instant().minusSeconds(2);
         return IntStream.range(0, numberOfInstants)
-                .mapToObj(i -> now.minusSeconds(i * 60))
+                .mapToObj(i -> now.minusSeconds(i * 60L))
                 .collect(Collectors.toList());
     }
 

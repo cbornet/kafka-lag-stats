@@ -75,7 +75,7 @@ class KafkaLagServiceTest {
 
     @Test
     void stddev() {
-        List<Double> doubles = Arrays.asList(1d, 2d, 3d,4d);
+        List<Double> doubles = Arrays.asList(1d, 2d, 3d, 4d);
 
         DoubleStats stddev = KafkaLagService.stddev(doubles);
 
