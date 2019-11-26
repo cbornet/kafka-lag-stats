@@ -7,8 +7,6 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -16,7 +14,7 @@ import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
-public class KafkaKafkaConsumer implements InitializingBean, DisposableBean {
+public class KafkaKafkaConsumer {
 
     private final Logger log = LoggerFactory.getLogger(KafkaKafkaConsumer.class);
 
@@ -32,34 +30,20 @@ public class KafkaKafkaConsumer implements InitializingBean, DisposableBean {
         this.kafkaProperties = kafkaProperties;
     }
 
-    public KafkaConsumer<String, String> getKafkaConsumer() {
-        return kafkaConsumer;
-    }
-
-    @Override
-    public void destroy() {
-        log.info("Shutdown Kafka consumer");
-        closed.set(true);
-        kafkaConsumer.wakeup();
-    }
-
-    @Override
-    public void afterPropertiesSet() {
+    public void start() {
+        log.info("Kafka consumer starting...");
         this.kafkaConsumer = new KafkaConsumer<>(kafkaProperties.getConsumerProps());
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
         Thread consumerThread = new Thread(() -> {
             try {
                 kafkaConsumer.subscribe(Collections.singletonList(TOPIC));
                 log.info("Kafka consumer started");
                 while (!closed.get()) {
-                    ConsumerRecords<String, String> records = kafkaConsumer.poll(Duration.ofSeconds(1));
-                    //log.info("Polled {} messages", records.count());
-
+                    ConsumerRecords<String, String> records = kafkaConsumer.poll(Duration.ofSeconds(3));
                     for (ConsumerRecord<String, String> record : records) {
-                        //log.info("Consumed message in {} : {}", TOPIC, record.value());
-                        Thread.sleep(100);
+                        log.info("Consumed message in {} : {}", TOPIC, record.value());
                     }
-                    kafkaConsumer.commitSync();
                 }
                 kafkaConsumer.commitSync();
             } catch (WakeupException e) {
@@ -72,5 +56,15 @@ public class KafkaKafkaConsumer implements InitializingBean, DisposableBean {
             }
         });
         consumerThread.start();
+    }
+
+    public KafkaConsumer<String, String> getKafkaConsumer() {
+        return kafkaConsumer;
+    }
+
+    public void shutdown() {
+        log.info("Shutdown Kafka consumer");
+        closed.set(true);
+        kafkaConsumer.wakeup();
     }
 }

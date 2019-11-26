@@ -42,6 +42,8 @@ spring:
         size: 1
   thymeleaf:
     mode: HTML
+  profiles:
+    active: test
 
 server:
   port: 10344
@@ -76,6 +78,7 @@ jhipster:
       enabled: true
       report-frequency: 60 # in seconds
 kafka:
+  bootstrap.servers: ${kafkaBootstrapServers}
   consumer:
     key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
     value.deserializer: org.apache.kafka.common.serialization.StringDeserializer
