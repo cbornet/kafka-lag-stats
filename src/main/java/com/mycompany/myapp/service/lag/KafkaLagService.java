@@ -50,30 +50,32 @@ public class KafkaLagService {
     }
 
     public int getPartition(String topic, String key) {
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(kafkaProperties.getConsumerProps());
-        int numPartitions = consumer.partitionsFor(topic).size();
-        return Utils.toPositive(Utils.murmur2(key.getBytes(StandardCharsets.UTF_8))) % numPartitions;
+        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(kafkaProperties.getConsumerProps())) {
+            int numPartitions = consumer.partitionsFor(topic).size();
+            return Utils.toPositive(Utils.murmur2(key.getBytes(StandardCharsets.UTF_8))) % numPartitions;
+        }
     }
 
     List<OffsetAndInstant> getProducerOffsets(TopicPartition tp, List<Instant> samplingInstants) {
         Map<TopicPartition, Long> timestampsToSearch = new HashMap<>();
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(kafkaProperties.getConsumerProps());
-        Long endOffset = null;
-        List<OffsetAndInstant> producerOffsets = new ArrayList<>();
+        try(KafkaConsumer<String, String> consumer = new KafkaConsumer<>(kafkaProperties.getConsumerProps())) {
+            Long endOffset = null;
+            List<OffsetAndInstant> producerOffsets = new ArrayList<>();
 
-        for (Instant instant : samplingInstants) {
-            timestampsToSearch.put(tp, instant.toEpochMilli());
-            OffsetAndTimestamp offsetAndTimestamp = consumer.offsetsForTimes(timestampsToSearch).get(tp);
-            if (offsetAndTimestamp == null) {
-                if (endOffset == null) {
-                    endOffset = consumer.endOffsets(Collections.singletonList(tp)).get(tp);
+            for (Instant instant : samplingInstants) {
+                timestampsToSearch.put(tp, instant.toEpochMilli());
+                OffsetAndTimestamp offsetAndTimestamp = consumer.offsetsForTimes(timestampsToSearch).get(tp);
+                if (offsetAndTimestamp == null) {
+                    if (endOffset == null) {
+                        endOffset = consumer.endOffsets(Collections.singletonList(tp)).get(tp);
+                    }
+                    producerOffsets.add(new OffsetAndInstant(endOffset, instant));
+                } else {
+                    producerOffsets.add(new OffsetAndInstant(offsetAndTimestamp.offset(), instant));
                 }
-                producerOffsets.add(new OffsetAndInstant(endOffset, instant));
-            } else {
-                producerOffsets.add(new OffsetAndInstant(offsetAndTimestamp.offset(), instant));
             }
+            return producerOffsets;
         }
-        return producerOffsets;
     }
 
     Optional<Long> getConsumerOffsetsFromReadings(String group, TopicPartition tp, Instant instant) {
@@ -187,26 +189,30 @@ public class KafkaLagService {
     }
 
     public TimeRemainingStats getTimeRemainingStats(String group, String topic, String publishTimestamp, List<Instant> samplingInstants) {
-        KafkaConsumer<String, String> consumer = new KafkaConsumer<>(kafkaProperties.getConsumerProps());
-        List<Double> timesRemaining = new ArrayList<>();
-        Map<Integer, TimeRemaining> timesRemainingInfo = consumer.partitionsFor(topic).stream()
-            .map(PartitionInfo::partition)
-            .map(partition -> {
-                try {
-                    return getTimeRemaining(group, new TopicPartition(topic, partition), publishTimestamp, samplingInstants);
-                } catch (ExecutionException | InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            })
-            .collect(Collectors.toMap(
-                TimeRemaining::getPartition,
-                t -> {
-                    timesRemaining.add(t.getTimeRemaining());
-                    return t;
+        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(kafkaProperties.getConsumerProps())) {
+            List<Double> timesRemaining = new ArrayList<>();
+            Map<Integer, TimeRemaining> timesRemainingInfo = consumer.partitionsFor(topic).stream()
+                .map(PartitionInfo::partition)
+                .map(partition -> {
+                    try {
+                        return getTimeRemaining(group, new TopicPartition(topic, partition), publishTimestamp, samplingInstants);
+                    } catch (ExecutionException e) {
+                        throw new RuntimeException(e);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException(e);
+                    }
                 })
-            );
-        DoubleStats stddev = stddev(timesRemaining);
-        return new TimeRemainingStats(stddev, timesRemainingInfo);
+                .collect(Collectors.toMap(
+                    TimeRemaining::getPartition,
+                    t -> {
+                        timesRemaining.add(t.getTimeRemaining());
+                        return t;
+                    })
+                );
+            DoubleStats stddev = stddev(timesRemaining);
+            return new TimeRemainingStats(stddev, timesRemainingInfo);
+        }
     }
 
     public static class OffsetAndInstant {

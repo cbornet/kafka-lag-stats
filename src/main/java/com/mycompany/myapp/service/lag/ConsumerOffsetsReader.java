@@ -49,34 +49,47 @@ public class ConsumerOffsetsReader implements InitializingBean, DisposableBean {
                 log.info("Kafka offset reader started");
                 while (!closed.get()) {
                     Thread.sleep(1000);
-                    Map<TopicPartition, Long> endOffsets = new HashMap<>();
                     client.listConsumerGroups().all().get().stream()
                             .map(ConsumerGroupListing::groupId)
-                            .forEach(groupId ->
-                            {
-                                try {
-                                    client.listConsumerGroupOffsets(groupId)
-                                        .partitionsToOffsetAndMetadata().get()
-                                        .forEach((k,v) -> endOffsets.put(k, v.offset()));
-                                    if (!groupOffsetPoints.containsKey(groupId)) {
-                                        groupOffsetPoints.put(groupId, new ArrayBlockingQueue<>(MAX_OFFSET_POINTS));
-                                    }
-                                    OffsetPoint offsetPoint = new OffsetPoint(Instant.now(), endOffsets);
-                                    BlockingQueue<OffsetPoint> offsetPoints = groupOffsetPoints.get(groupId);
-                                    if(!offsetPoints.offer(offsetPoint)){
-                                        offsetPoints.poll();
-                                        offsetPoints.put(offsetPoint);
-                                    }
-                                } catch (InterruptedException | ExecutionException e) {
-                                    log.error(e.getMessage(), e);
-                                }
-                            });
+                            .forEach(this::getAndRecordOffsets);
                 }
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }
         });
         readerThread.start();
+    }
+
+    private void getAndRecordOffsets(String groupId) {
+        try {
+            Map<TopicPartition, Long> endOffsets = getOffsets(groupId);
+            recordOffsets(groupId, endOffsets);
+        } catch (ExecutionException e) {
+            log.error(e.getMessage(), e);
+        } catch (InterruptedException e) {
+            log.error(e.getMessage(), e);
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private void recordOffsets(String groupId, Map<TopicPartition, Long> endOffsets) throws InterruptedException {
+        if (!groupOffsetPoints.containsKey(groupId)) {
+            groupOffsetPoints.put(groupId, new ArrayBlockingQueue<>(MAX_OFFSET_POINTS));
+        }
+        OffsetPoint offsetPoint = new OffsetPoint(Instant.now(), endOffsets);
+        BlockingQueue<OffsetPoint> offsetPoints = groupOffsetPoints.get(groupId);
+        if(!offsetPoints.offer(offsetPoint)){
+            offsetPoints.poll();
+            offsetPoints.put(offsetPoint);
+        }
+    }
+
+    private Map<TopicPartition, Long> getOffsets(String groupId) throws InterruptedException, ExecutionException {
+        Map<TopicPartition, Long> endOffsets = new HashMap<>();
+        client.listConsumerGroupOffsets(groupId)
+            .partitionsToOffsetAndMetadata().get()
+            .forEach((k,v) -> endOffsets.put(k, v.offset()));
+        return endOffsets;
     }
 
 
