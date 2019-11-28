@@ -28,3 +28,6 @@ jobs:
                  ./mvnw -ntp clean verify 
             - name: Package application
               run: ./mvnw -ntp package -Pprod -DskipTests
+            - name: Build docker image
+              if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+              run: ./mvnw -ntp jib:build
