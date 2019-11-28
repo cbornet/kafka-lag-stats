@@ -1,33 +1,26 @@
 name: Application CI
 on: [push, pull_request]
 jobs:
-    applications:
-        name: kafka test suite
+    application:
+        name: kafka lag stats CI/CD
         runs-on: ubuntu-latest
         timeout-minutes: 40
         env:
-            NODE_VERSION: 12.13.0
             SPRING_OUTPUT_ANSI_ENABLED: DETECT
-            SPRING_JPA_SHOW_SQL: false
-            JHI_DISABLE_WEBPACK_LOGS: true
         steps:
             - uses: actions/checkout@v1
-            - uses: actions/setup-node@v1
-              with:
-                  node-version: 12.13.0
             - uses: actions/setup-java@v1
               with:
                   java-version: '11.x'
-            - name: Stop MySQL server
-              run: sudo /etc/init.d/mysql stop
-            - name: Install node.js packages
-              run: npm install
             - name: Run backend test
               run: |
-                 chmod +x mvnw
-                 ./mvnw -ntp clean verify 
+                  chmod +x mvnw
+                  ./mvnw -ntp clean verify
             - name: Package application
               run: ./mvnw -ntp package -Pprod -DskipTests
             - name: Build and publish docker image
-              if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-              run: ./mvnw jib:build -Djib.to.auth.username=cbornet -Djib.to.auth.password=${{ secrets.DOCKER_PASSWORD }} -Djib.to.image=cbornet/kafka_lag_stats
+              if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))
+              run: |
+                  GIT_TAG=:${GITHUB_REF#refs/tags/}
+                  DOCKER_TAG=${GIT_TAG#refs/heads/master}
+                  ./mvnw -ntp jib:build -Djib.to.auth.username=cbornet -Djib.to.auth.password=${{ secrets.DOCKER_PASSWORD }} -Djib.to.image=cbornet/kafka_lag_stats${DOCKER_TAG}
