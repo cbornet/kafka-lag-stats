@@ -28,6 +28,6 @@ jobs:
                  ./mvnw -ntp clean verify 
             - name: Package application
               run: ./mvnw -ntp package -Pprod -DskipTests
-            - name: Build docker image
+            - name: Build and publish docker image
               if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-              run: ./mvnw -ntp jib:build
+              run: ./mvnw jib:build -Djib.to.auth.username=cbornet -Djib.to.auth.password=${{ secrets.DOCKER_PASSWORD }} -Djib.to.image=cbornet/kafka_lag_stats
