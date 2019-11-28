@@ -3,7 +3,7 @@
     "promptValues": {
       "packageName": "com.mycompany.myapp"
     },
-    "jhipsterVersion": "6.5.1",
+    "jhipsterVersion": "6.5.0",
     "applicationType": "monolith",
     "baseName": "kafka",
     "packageName": "com.mycompany.myapp",

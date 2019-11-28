@@ -3,9 +3,6 @@ package com.mycompany.myapp;
 import com.mycompany.myapp.config.ApplicationProperties;
 import com.mycompany.myapp.config.DefaultProfileUtil;
 
-import com.mycompany.myapp.service.KafkaKafkaConsumer;
-import com.mycompany.myapp.service.KafkaKafkaProducer;
-import org.springframework.context.ConfigurableApplicationContext;
 import io.github.jhipster.config.JHipsterConstants;
 
 import org.apache.commons.lang3.StringUtils;
@@ -62,10 +59,7 @@ public class KafkaApp implements InitializingBean {
     public static void main(String[] args) {
         SpringApplication app = new SpringApplication(KafkaApp.class);
         DefaultProfileUtil.addDefaultProfile(app);
-        ConfigurableApplicationContext applicationContext = app.run(args);
-        applicationContext.getBean(KafkaKafkaProducer.class).init();
-        applicationContext.getBean(KafkaKafkaConsumer.class).start();
-        Environment env = applicationContext.getEnvironment();
+        Environment env = app.run(args).getEnvironment();
         logApplicationStartup(env);
     }
 
