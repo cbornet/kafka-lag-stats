@@ -5,7 +5,7 @@
     },
     "jhipsterVersion": "6.5.0",
     "applicationType": "monolith",
-    "baseName": "kafka",
+    "baseName": "kafka_lag_stats",
     "packageName": "com.mycompany.myapp",
     "packageFolder": "com/mycompany/myapp",
     "serverPort": "8080",

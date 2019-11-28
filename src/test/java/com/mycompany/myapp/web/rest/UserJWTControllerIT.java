@@ -1,6 +1,6 @@
 package com.mycompany.myapp.web.rest;
 
-import com.mycompany.myapp.KafkaApp;
+import com.mycompany.myapp.KafkaLagStatsApp;
 import com.mycompany.myapp.security.jwt.TokenProvider;
 import com.mycompany.myapp.web.rest.errors.ExceptionTranslator;
 import com.mycompany.myapp.web.rest.vm.LoginVM;
@@ -23,7 +23,7 @@ import static org.hamcrest.Matchers.not;
 /**
  * Integration tests for the {@link UserJWTController} REST controller.
  */
-@SpringBootTest(classes = KafkaApp.class)
+@SpringBootTest(classes = KafkaLagStatsApp.class)
 public class UserJWTControllerIT {
 
     @Autowired

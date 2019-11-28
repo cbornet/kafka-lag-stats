@@ -57,7 +57,7 @@ management:
 
 spring:
   application:
-    name: kafka
+    name: kafka_lag_stats
   profiles:
     # The commented value for `active` can be replaced with valid Spring profiles to load.
     # Otherwise, it will be filled in by maven when building the JAR file
@@ -81,13 +81,13 @@ spring:
         - USER
   task:
     execution:
-      thread-name-prefix: kafka-task-
+      thread-name-prefix: kafka-lag-stats-task-
       pool:
         core-size: 2
         max-size: 50
         queue-capacity: 10000
     scheduling:
-      thread-name-prefix: kafka-scheduling-
+      thread-name-prefix: kafka-lag-stats-scheduling-
       pool:
         size: 2
   thymeleaf:
@@ -115,7 +115,7 @@ info:
 
 jhipster:
   clientApp:
-    name: 'kafkaApp'
+    name: 'kafkaLagStatsApp'
   # By default CORS is disabled. Uncomment to enable.
   # cors:
   #     allowed-origins: "*"
@@ -125,11 +125,11 @@ jhipster:
   #     allow-credentials: true
   #     max-age: 1800
   mail:
-    from: kafka@localhost
+    from: kafka_lag_stats@localhost
   swagger:
     default-include-pattern: /api/.*
-    title: kafka API
-    description: kafka API documentation
+    title: kafka_lag_stats API
+    description: kafka_lag_stats API documentation
     version: 0.0.1
     terms-of-service-url:
     contact-name:
@@ -138,12 +138,11 @@ jhipster:
     license:
     license-url:
 kafka:
-  bootstrap.servers: localhost:9092
   consumer:
     key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
     value.deserializer: org.apache.kafka.common.serialization.StringDeserializer
     bootstrap.servers: localhost:9092
-    group.id: kafka
+    group.id: kafka-lag-stats
     auto.offset.reset: earliest
   producer:
     key.serializer: org.apache.kafka.common.serialization.StringSerializer
