@@ -1,20 +1,47 @@
-# kafka
+[![Build Status][github-image]][github-url] 
 
-This application was generated using JHipster 6.5.0, you can find documentation and help at [https://www.jhipster.tech/documentation-archive/v6.5.0](https://www.jhipster.tech/documentation-archive/v6.5.0).
+# kafka-lag-stats
+
+This application is a tool that monitors the lag of the consumers and gives estimations of the time remaining for a given 
+message to be consumed by a given consumer.
+
+The consumption of the message is defined by the consumer group, the topic and the partition on which the message is written.
+If the partitioner used by the producer is the [DefaultPartitioner](https://github.com/apache/kafka/blob/2.3.1/clients/src/main/java/org/apache/kafka/clients/producer/internals/DefaultPartitioner.java) 
+and the producer uses a partition key, then the kafka-lag-stats endpoints can be used by providing the partition key used for the message. Otherwise, the partition must be provided explicitly.
+
+Example for topic `my-topic`, consumer group `my-group`, message key `my-key`:
+```shell script
+curl "http://localhost:8080/api/kafka-lag/time-remaining?group=my-group&topic=my-topic&key=my-key&publishTimestamp=2019-11-28T10:02:57.574Z"
+```
+```json
+{
+  "partition" : 0,
+  "timeRemaining" : 440.32,
+  "messageLag" : {
+    "consumerOffset" : 2500,
+    "producerOffset" : 8004,
+    "lagMessages" : 5504,
+    "timestamp" : "2019-11-28T10:02:57.574Z"
+  },
+  "speedStats" : {
+    "meanSpeed" : {
+      "mean" : 12.5,
+      "stddev" : 12.5,
+      "stddevPercent" : 100.0
+    },
+```
 
 ## Development
 
-To start your application in the dev profile, simply run:
+To start the application in the dev profile, run:
 
     ./mvnw
-
-For further instructions on how to develop with JHipster, have a look at [Using JHipster in development][].
 
 ## Building for production
 
 ### Packaging as jar
 
-To build the final jar and optimize the kafka application for production, run:
+To build the final jar and optimize the application for production, run:
 
     ./mvnw -Pprod clean verify
 
@@ -26,13 +53,13 @@ Refer to [Using JHipster in production][] for more details.
 
 ### Packaging as war
 
-To package your application as a war in order to deploy it to an application server, run:
+To package the application as a war in order to deploy it to an application server, run:
 
     ./mvnw -Pprod,war clean verify
 
 ## Testing
 
-To launch your application's tests, run:
+To launch the application's tests, run:
 
     ./mvnw verify
 
@@ -60,13 +87,11 @@ If you need to re-run the Sonar phase, please be sure to specify at least the `i
 ./mvnw initialize sonar:sonar
 ```
 
-or
-
 For more information, refer to the [Code quality page][].
 
-## Using Docker to simplify development (optional)
+## Using Docker to simplify development
 
-You can use Docker to improve your JHipster development experience. A number of docker-compose configuration are available in the [src/main/docker](src/main/docker) folder to launch required third party services.
+A number of docker-compose configuration are available in the [src/main/docker](src/main/docker) folder to launch required third party services including a Kafka broker.
 
 You can also fully dockerize your application and all the services that it depends on.
 To achieve this, first build a docker image of your app by running:
@@ -79,9 +104,11 @@ Then run:
 
 For more information refer to [Using Docker and Docker-Compose][], this page also contains information on the docker-compose sub-generator (`jhipster docker-compose`), which is able to generate docker configurations for one or several JHipster applications.
 
-## Continuous Integration (optional)
+## Credits
 
-To configure CI for your project, run the ci-cd sub-generator (`jhipster ci-cd`), this will let you generate configuration files for a number of Continuous Integration systems. Consult the [Setting up Continuous Integration][] page for more information.
+This application was generated using JHipster 6.5.0, you can find documentation and help at [https://www.jhipster.tech/documentation-archive/v6.5.0](https://www.jhipster.tech/documentation-archive/v6.5.0).
+For further instructions on how to develop with JHipster, have a look at [Using JHipster in development][].
+
 
 [jhipster homepage and latest documentation]: https://www.jhipster.tech
 [jhipster 6.5.0 archive]: https://www.jhipster.tech/documentation-archive/v6.5.0
@@ -90,4 +117,5 @@ To configure CI for your project, run the ci-cd sub-generator (`jhipster ci-cd`)
 [using jhipster in production]: https://www.jhipster.tech/documentation-archive/v6.5.0/production/
 [running tests page]: https://www.jhipster.tech/documentation-archive/v6.5.0/running-tests/
 [code quality page]: https://www.jhipster.tech/documentation-archive/v6.5.0/code-quality/
-[setting up continuous integration]: https://www.jhipster.tech/documentation-archive/v6.5.0/setting-up-ci/
+[github-image]: https://github.com/cbornet/kafka-lag-stats/workflows/Application%20CI/badge.svg
+[github-url]: https://github.com/cbornet/kafka-lag-stats/actions

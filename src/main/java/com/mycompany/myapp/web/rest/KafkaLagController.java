@@ -144,7 +144,7 @@ public class KafkaLagController {
     /**
      * {@code GET  /time-remaining} : get the average time that a consumer still needs to consume a message published
      * at a given time (when you don't know the key or partition)
-     * 
+     *
      * @param group the consumer group of the consumer
      * @param topic the topic subscribed by the consumer
      * @param publishTimestamp the timestamp at which the message was published
