@@ -1,6 +1,6 @@
 {
   "name": "kafka-lag-stats",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Description for kafka_lag_stats",
   "private": true,
   "license": "UNLICENSED",
