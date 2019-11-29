@@ -21,7 +21,7 @@ jobs:
               if: github.event_name == 'pull_request' # && github.ref == 'refs/heads/master'
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: ./mvnw -ntp initialize sonar:sonar -Dsonar.organization=cbornet-github -Dsonar.host.url=https://sonarcloud.io -Dsonar.login="${{ secrets.SONAR_TOKEN }}" -Dsonar.github.repository=${{ GITHUB_REPOSITORY }} -Dsonar.github.pullRequest=https://github.com/cbornet/kafka-lag-stats/pull/4
+              run: ./mvnw -ntp initialize sonar:sonar -Dsonar.organization=cbornet-github -Dsonar.host.url=https://sonarcloud.io -Dsonar.login="${{ secrets.SONAR_TOKEN }}" -Dsonar.github.repository=$GITHUB_REPOSITORY -Dsonar.github.pullRequest=https://github.com/cbornet/kafka-lag-stats/pull/4
             - name: Package application
               run: ./mvnw -ntp package -Pprod -DskipTests
             - name: Build and publish docker image
