@@ -15,7 +15,7 @@ jobs:
             - name: Run backend test
               run: |
                   chmod +x mvnw
-                  echo ${{ toJson(github) }}
+                  echo ${{ github.event.pull_request.html }}
                   # ./mvnw -ntp clean verify
             - name: Analyze code
               if: github.event_name == 'pull_request' # && github.ref == 'refs/heads/master'
