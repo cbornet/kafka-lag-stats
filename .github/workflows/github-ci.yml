@@ -23,4 +23,4 @@ jobs:
               run: |
                   GIT_TAG=:${GITHUB_REF#refs/tags/}
                   DOCKER_TAG=${GIT_TAG#:refs/heads/master}
-                  ./mvnw -ntp jib:build -Djib.to.auth.username=cbornet -Djib.to.auth.password=${{ secrets.DOCKER_PASSWORD }} -Djib.to.image=cbornet/kafka_lag_stats${DOCKER_TAG}
+                  ./mvnw -ntp jib:build -Djib.to.auth.username=cbornet -Djib.to.auth.password=${{ secrets.DOCKER_PASSWORD }} -Djib.to.image=docker.io/cbornet/kafka_lag_stats${DOCKER_TAG}
