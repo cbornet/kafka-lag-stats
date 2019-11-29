@@ -1,8 +1,8 @@
 name: Application CI
 on: [push, pull_request]
 jobs:
-    application:
-        name: kafka lag stats CI/CD
+    pipeline:
+        name: kafka_lag_stats pipeline
         runs-on: ubuntu-latest
         timeout-minutes: 40
         env:
@@ -16,6 +16,11 @@ jobs:
               run: |
                   chmod +x mvnw
                   ./mvnw -ntp clean verify
+            - name: Analyze code with SonarQube
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+              run: ./mvnw -ntp initialize sonar:sonar -Dsonar.organization=cbornet-github -Dsonar.host.url=https://sonarcloud.io
             - name: Package application
               run: ./mvnw -ntp package -Pprod -DskipTests
             - name: Build and publish docker image
@@ -23,4 +28,4 @@ jobs:
               run: |
                   GIT_TAG=:${GITHUB_REF#refs/tags/}
                   DOCKER_TAG=${GIT_TAG#:refs/heads/master}
-                  ./mvnw -ntp jib:build -Djib.to.auth.username=cbornet -Djib.to.auth.password=${{ secrets.DOCKER_PASSWORD }} -Djib.to.image=docker.io/cbornet/kafka_lag_stats${DOCKER_TAG}
+                  ./mvnw -ntp jib:build -Djib.to.image=docker.io/cbornet/kafka-lag-stats${DOCKER_TAG} -Djib.to.auth.username="${{ secrets.DOCKER_USERNAME }}" -Djib.to.auth.password="${{ secrets.DOCKER_PASSWORD }}"

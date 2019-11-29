@@ -8,14 +8,6 @@ services:
       - MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED=true
       - JHIPSTER_SLEEP=30 # gives time for other services to boot before the application
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - KAFKA_CONSUMER_KEY_DESERIALIZER=org.apache.kafka.common.serialization.StringDeserializer
-      - KAFKA_CONSUMER_VALUE_DESERIALIZER=org.apache.kafka.common.serialization.StringDeserializer
-      - KAFKA_CONSUMER_BOOTSTRAP_SERVERS=kafka:9092
-      - KAFKA_CONSUMER_GROUP_ID=kafka-lag-stats
-      - KAFKA_CONSUMER_AUTO_OFFSET_RESET=earliest
-      - KAFKA_PRODUCER_BOOTSTRAP_SERVERS=kafka:9092
-      - KAFKA_PRODUCER_KEY_DESERIALIZER=org.apache.kafka.common.serialization.StringDeserializer
-      - KAFKA_PRODUCER_VALUE_DESERIALIZER=org.apache.kafka.common.serialization.StringDeserializer
     ports:
       - 8080:8080
   kafka:
