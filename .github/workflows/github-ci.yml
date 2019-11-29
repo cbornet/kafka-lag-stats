@@ -15,8 +15,7 @@ jobs:
             - name: Run backend test
               run: |
                   chmod +x mvnw
-                  echo ${{ github.event.pull_request.html_url }}
-                  # ./mvnw -ntp clean verify
+                  ./mvnw -ntp clean verify
             - name: Analyze code
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
