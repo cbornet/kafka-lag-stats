@@ -15,11 +15,11 @@ jobs:
             - name: Run backend test
               run: |
                   chmod +x mvnw
-                  ./mvnw -ntp clean verify
+                  # ./mvnw -ntp clean verify
             - name: Analyze code
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: ./mvnw -ntp initialize sonar:sonar -Dsonar.organization=cbornet-github -Dsonar.host.url=https://sonarcloud.io -Dsonar.login="${{ secrets.SONAR_TOKEN }}" -Dsonar.github.repository=$GITHUB_REPOSITORY -Dsonar.github.pullRequest="${{ github.event.pull_request.html_url }}"
+              run: ./mvnw -ntp initialize sonar:sonar -Dsonar.organization=cbornet-github -Dsonar.host.url=https://sonarcloud.io -Dsonar.login="${{ secrets.SONAR_TOKEN }}" -Dsonar.github.pullRequest="${{ github.event.pull_request.html_url }}"
             - name: Package application
               run: ./mvnw -ntp package -Pprod -DskipTests
             - name: Build and publish docker image
