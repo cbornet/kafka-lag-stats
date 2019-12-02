@@ -7,9 +7,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,11 +31,20 @@ public class ConsumerOffsetsReader implements InitializingBean, DisposableBean {
     private static final int MAX_OFFSET_POINTS = 3600 * 4;
 
     private Map<String, BlockingQueue<OffsetPoint>> groupOffsetPoints = new HashMap<>();
+    private int maxOffsetPoints;
 
     private final AdminClient client;
+    private final Clock clock;
 
-    public ConsumerOffsetsReader(AdminClient client) {
+    @Autowired
+    public ConsumerOffsetsReader(AdminClient client, Clock clock) {
+        this(client, clock, MAX_OFFSET_POINTS);
+    }
+
+    public ConsumerOffsetsReader(AdminClient client, Clock clock, int maxOffsetPoints) {
         this.client = client;
+        this.clock = clock;
+        this.maxOffsetPoints = maxOffsetPoints;
     }
 
     @Override
@@ -60,7 +71,7 @@ public class ConsumerOffsetsReader implements InitializingBean, DisposableBean {
         readerThread.start();
     }
 
-    private void getAndRecordOffsets(String groupId) {
+     void getAndRecordOffsets(String groupId) {
         try {
             Map<TopicPartition, Long> endOffsets = getOffsets(groupId);
             recordOffsets(groupId, endOffsets);
@@ -72,19 +83,19 @@ public class ConsumerOffsetsReader implements InitializingBean, DisposableBean {
         }
     }
 
-    private void recordOffsets(String groupId, Map<TopicPartition, Long> endOffsets) throws InterruptedException {
+    void recordOffsets(String groupId, Map<TopicPartition, Long> endOffsets) {
         if (!groupOffsetPoints.containsKey(groupId)) {
-            groupOffsetPoints.put(groupId, new ArrayBlockingQueue<>(MAX_OFFSET_POINTS));
+            groupOffsetPoints.put(groupId, new ArrayBlockingQueue<>(maxOffsetPoints));
         }
-        OffsetPoint offsetPoint = new OffsetPoint(Instant.now(), endOffsets);
+        OffsetPoint offsetPoint = new OffsetPoint(clock.instant(), endOffsets);
         BlockingQueue<OffsetPoint> offsetPoints = groupOffsetPoints.get(groupId);
         if(!offsetPoints.offer(offsetPoint)){
             offsetPoints.poll();
-            offsetPoints.put(offsetPoint);
+            offsetPoints.add(offsetPoint);
         }
     }
 
-    private Map<TopicPartition, Long> getOffsets(String groupId) throws InterruptedException, ExecutionException {
+    Map<TopicPartition, Long> getOffsets(String groupId) throws InterruptedException, ExecutionException {
         Map<TopicPartition, Long> endOffsets = new HashMap<>();
         client.listConsumerGroupOffsets(groupId)
             .partitionsToOffsetAndMetadata().get()
