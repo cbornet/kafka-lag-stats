@@ -2,12 +2,7 @@ package com.mycompany.myapp;
 
 import com.mycompany.myapp.config.ApplicationProperties;
 import com.mycompany.myapp.config.DefaultProfileUtil;
-
-import com.mycompany.myapp.service.KafkaKafkaConsumer;
-import com.mycompany.myapp.service.KafkaKafkaProducer;
-import org.springframework.context.ConfigurableApplicationContext;
 import io.github.jhipster.config.JHipsterConstants;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,18 +19,18 @@ import java.util.Collection;
 
 @SpringBootApplication
 @EnableConfigurationProperties({ApplicationProperties.class})
-public class KafkaApp implements InitializingBean {
+public class KafkaLagStatsApp implements InitializingBean {
 
-    private static final Logger log = LoggerFactory.getLogger(KafkaApp.class);
+    private static final Logger log = LoggerFactory.getLogger(KafkaLagStatsApp.class);
 
     private final Environment env;
 
-    public KafkaApp(Environment env) {
+    public KafkaLagStatsApp(Environment env) {
         this.env = env;
     }
 
     /**
-     * Initializes kafka.
+     * Initializes kafka_lag_stats.
      * <p>
      * Spring profiles can be configured with a program argument --spring.profiles.active=your-active-profile
      * <p>
@@ -60,12 +55,9 @@ public class KafkaApp implements InitializingBean {
      * @param args the command line arguments.
      */
     public static void main(String[] args) {
-        SpringApplication app = new SpringApplication(KafkaApp.class);
+        SpringApplication app = new SpringApplication(KafkaLagStatsApp.class);
         DefaultProfileUtil.addDefaultProfile(app);
-        ConfigurableApplicationContext applicationContext = app.run(args);
-        applicationContext.getBean(KafkaKafkaProducer.class).init();
-        applicationContext.getBean(KafkaKafkaConsumer.class).start();
-        Environment env = applicationContext.getEnvironment();
+        Environment env = app.run(args).getEnvironment();
         logApplicationStartup(env);
     }
 

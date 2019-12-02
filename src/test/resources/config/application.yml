@@ -15,7 +15,7 @@
 
 spring:
   application:
-    name: kafka
+    name: kafka_lag_stats
   mail:
     host: localhost
   main:
@@ -31,13 +31,13 @@ spring:
       password: test
   task:
     execution:
-      thread-name-prefix: kafka-task-
+      thread-name-prefix: kafka-lag-stats-task-
       pool:
         core-size: 1
         max-size: 50
         queue-capacity: 10000
     scheduling:
-      thread-name-prefix: kafka-scheduling-
+      thread-name-prefix: kafka-lag-stats-scheduling-
       pool:
         size: 1
   thymeleaf:
@@ -57,7 +57,7 @@ server:
 
 jhipster:
   clientApp:
-    name: 'kafkaApp'
+    name: 'kafkaLagStatsApp'
   logging:
     # To test json console appender
     use-json-format: true # By default, logs are in Json format
@@ -78,17 +78,16 @@ jhipster:
       enabled: true
       report-frequency: 60 # in seconds
 kafka:
-  bootstrap.servers: ${kafkaBootstrapServers}
   consumer:
     key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
     value.deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    bootstrap.servers: ${kafkaBootstrapServers}
-    group.id: kafka
+    bootstrap.servers: localhost:9092
+    group.id: kafka-lag-stats
     auto.offset.reset: earliest
   producer:
     key.serializer: org.apache.kafka.common.serialization.StringSerializer
     value.serializer: org.apache.kafka.common.serialization.StringSerializer
-    bootstrap.servers: ${kafkaBootstrapServers}
+    bootstrap.servers: localhost:9092
 # ===================================================================
 # Application specific properties
 # Add your own application properties here, see the ApplicationProperties class

@@ -13,11 +13,7 @@ import java.util.Properties;
 @Profile("!test")
 public class KafkaConfiguration {
     @Bean
-    public AdminClient adminClient(KafkaProperties kafkaProperties
-                                   //@Value("${kafka.bootstrap.servers}") String bootstrapServers
-                                    ) {
-        //Properties props = new Properties();
-        //props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+    public AdminClient adminClient(KafkaProperties kafkaProperties) {
         return AdminClient.create(kafkaProperties.getConsumerProps());
     }
 }

@@ -1,6 +1,6 @@
 version: '2'
 services:
-  kafka-sonar:
+  kafka_lag_stats-sonar:
     image: sonarqube:7.9.1-community
     ports:
       - 9001:9000

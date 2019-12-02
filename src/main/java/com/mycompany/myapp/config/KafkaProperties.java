@@ -3,15 +3,16 @@ package com.mycompany.myapp.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
 @ConfigurationProperties(prefix = "kafka")
 public class KafkaProperties {
 
-    private Map<String, String> consumer;
+    private Map<String, String> consumer = new HashMap<>();
 
-    private Map<String, String> producer;
+    private Map<String, String> producer = new HashMap<>();
 
     public Map<String, Object> getConsumerProps() {
         return (Map) consumer;

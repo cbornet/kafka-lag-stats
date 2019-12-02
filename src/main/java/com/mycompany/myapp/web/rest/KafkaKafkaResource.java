@@ -1,135 +1,119 @@
 package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.config.KafkaProperties;
-import com.mycompany.myapp.service.KafkaKafkaProducer;
-import com.mycompany.myapp.service.lag.*;
-import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @RestController
 @RequestMapping("/api/kafka-kafka")
-@Profile("!test")
 public class KafkaKafkaResource {
 
-    private static final int NUMBER_OF_SAMPLING_INSTANTS = 10;
     private final Logger log = LoggerFactory.getLogger(KafkaKafkaResource.class);
 
-    private KafkaKafkaProducer kafkaProducer;
+    private final KafkaProperties kafkaProperties;
+    private KafkaProducer<String, String> producer;
+    private Map<String, SafeKafkaConsumer> consumers = new ConcurrentHashMap<>();
 
-    private final KafkaLagService lagService;
-
-    private final Clock clock;
-
-    public KafkaKafkaResource(KafkaKafkaProducer kafkaProducer, KafkaLagService lagService, Clock clock) {
-        this.kafkaProducer = kafkaProducer;
-        this.lagService = lagService;
-        this.clock = clock;
+    public KafkaKafkaResource(KafkaProperties kafkaProperties) {
+        this.kafkaProperties = kafkaProperties;
+        this.producer = new KafkaProducer<>(kafkaProperties.getProducerProps());
     }
 
-    @PostMapping("/publish")
-    public void sendMessageToKafkaTopic(@RequestParam("message") String message, @RequestParam(value = "key", required = false) String key) {
-        log.debug("REST request to send to Kafka topic the message : {}", message);
-        if(key == null) {
-            this.kafkaProducer.send(message);
-        } else {
-            kafkaProducer.send(message, key);
+    @PostMapping(value = "/publish/{topic}")
+    public PublishResult publish(@PathVariable String topic, @RequestParam String message, @RequestParam(required = false) String key) throws ExecutionException, InterruptedException {
+        log.debug("REST request to send to Kafka topic {} with key {} the message : {}", topic, key, message);
+        RecordMetadata metadata = producer.send(new ProducerRecord<>(topic, key, message)).get();
+        return new PublishResult(metadata.topic(), metadata.partition(), metadata.offset(), Instant.ofEpochMilli(metadata.timestamp()));
+    }
+
+    @PostMapping("/consumers")
+    public void createConsumer(@RequestParam String name, @RequestParam("topic") List<String> topics, @RequestParam Map<String, String> params) {
+        log.debug("REST request to create a Kafka consumer {} of Kafka topics {}", name, topics);
+        Map<String, Object> consumerProps = kafkaProperties.getConsumerProps();
+        consumerProps.putAll(params);
+        consumerProps.remove("topic");
+        consumerProps.remove("name");
+        SafeKafkaConsumer consumer = new SafeKafkaConsumer(consumerProps);
+        consumer.subscribe(topics);
+        consumers.put(name, consumer);
+    }
+
+    @GetMapping("/consumers/{name}/records")
+    public List<String> pollConsumer(@PathVariable String name, @RequestParam(defaultValue = "1000") int durationMs) {
+        log.debug("REST request to get records of Kafka consumer {}", name);
+        List<String> records = new ArrayList<>();
+        SafeKafkaConsumer consumer = consumers.get(name);
+        if (consumer == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Consumer not found!");
+        }
+        try {
+            consumer.poll(Duration.ofMillis(durationMs)).forEach(record -> records.add(record.value()));
+        } catch (WakeupException e) {
+            log.trace("Waken up while polling", e);
+        }
+        return records;
+    }
+
+    @DeleteMapping("consumers/{name}")
+    public void deleteConsumer(@PathVariable String name) {
+        SafeKafkaConsumer consumer = consumers.get(name);
+        if (consumer == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Consumer not found!");
+        }
+        consumer.wakeup();
+        consumer.close();
+        consumers.remove(name);
+    }
+
+    static class SafeKafkaConsumer extends KafkaConsumer<String, String> {
+
+        public SafeKafkaConsumer(Map<String, Object> configs) {
+            super(configs);
+        }
+
+        @Override
+        public synchronized ConsumerRecords<String, String> poll(Duration timeout) {
+            return super.poll(timeout);
+        }
+
+        @Override
+        public synchronized void subscribe(Collection<String> topics) {
+            super.subscribe(topics);
+        }
+
+        @Override
+        public synchronized void close(Duration timeout) {
+            super.wakeup();
+            super.close(timeout);
         }
     }
 
-    @GetMapping("/partition")
-    public int getPartition(@RequestParam("topic") String topic, @RequestParam("key") String key) {
-        return lagService.getPartition(topic, key);
-    }
+    private static class PublishResult {
+        public final String topic;
+        public final int partition;
+        public final long offset;
+        public final Instant timestamp;
 
-    @GetMapping("/lags")
-    public List<MessageLag> getLags(
-            @RequestParam String group,
-            @RequestParam String topic,
-            @RequestParam(required = false) Integer partition,
-            @RequestParam(required = false) String key) {
-        List<Instant> samplingInstants = getSamplingInstantsFromNow(NUMBER_OF_SAMPLING_INSTANTS);
-        return lagService.getConsumerLags(group,  getPartitionFromParams(topic, partition, key), samplingInstants);
-    }
-
-    @GetMapping("/speeds")
-    public List<MessageSpeed> getSpeeds(
-            @RequestParam String group,
-            @RequestParam String topic,
-            @RequestParam(required = false) Integer partition,
-            @RequestParam(required = false) String key) {
-        List<Instant> samplingInstants = getSamplingInstantsFromNow(NUMBER_OF_SAMPLING_INSTANTS);
-        return lagService.getConsumerSpeeds(group,  getPartitionFromParams(topic, partition, key), samplingInstants);
-    }
-
-    @GetMapping("/speed-stats")
-    public SpeedStats getSpeedStats(
-            @RequestParam String group,
-            @RequestParam String topic,
-            @RequestParam(required = false) Integer partition,
-            @RequestParam(required = false) String key) {
-        List<Instant> samplingInstants = getSamplingInstantsFromNow(NUMBER_OF_SAMPLING_INSTANTS);
-        return lagService.getSpeedStats(group, getPartitionFromParams(topic, partition, key), samplingInstants);
-    }
-
-    @GetMapping("/messages-remaining")
-    public MessageLag getMessagesToPublishTimestamp(
-            @RequestParam String group,
-            @RequestParam String topic,
-            @RequestParam(required = false) Integer partition,
-            @RequestParam(required = false) String key,
-            @RequestParam(required = false) String publishTimestamp)
-            throws ExecutionException, InterruptedException {
-        return lagService.getMessagesToPublishTimestamp(group, getPartitionFromParams(topic, partition, key), publishTimestamp);
-    }
-
-    @GetMapping("/time-remaining")
-    public TimeRemaining getTimeRemaining(
-            @RequestParam String group,
-            @RequestParam String topic,
-            @RequestParam(required = false) Integer partition,
-            @RequestParam(required = false) String key,
-            @RequestParam(required = false) String publishTimestamp) throws ExecutionException, InterruptedException {
-        List<Instant> samplingInstants = getSamplingInstantsFromNow(NUMBER_OF_SAMPLING_INSTANTS);
-        return lagService.getTimeRemaining(group, getPartitionFromParams(topic, partition, key), publishTimestamp, samplingInstants);
-    }
-
-    @GetMapping("/time-remaining-stats")
-    public TimeRemainingStats getTimeRemainingStats(
-            @RequestParam String group,
-            @RequestParam String topic,
-            @RequestParam(required = false) String publishTimestamp) {
-        List<Instant> samplingInstants = getSamplingInstantsFromNow(NUMBER_OF_SAMPLING_INSTANTS);
-        return lagService.getTimeRemainingStats(group, topic, publishTimestamp, samplingInstants);
-    }
-
-    private TopicPartition getPartitionFromParams(String topic, Integer partition, String key) {
-        if (partition == null && key == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Either partition or key must be specified");
+        private PublishResult(String topic, int partition, long offset, Instant timestamp) {
+            this.topic = topic;
+            this.partition = partition;
+            this.offset = offset;
+            this.timestamp = timestamp;
         }
-        if (partition != null && key != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Either partition or key must be specified, not both");
-        }
-        return new TopicPartition(topic, key != null ? lagService.getPartition(topic, key) : partition);
     }
-
-    private List<Instant> getSamplingInstantsFromNow(int numberOfInstants) {
-        // Start 2 seconds ago to have high probability that the consumer offset has been read.
-        Instant now = clock.instant().minusSeconds(2);
-        return IntStream.range(0, numberOfInstants)
-                .mapToObj(i -> now.minusSeconds(i * 60L))
-                .collect(Collectors.toList());
-    }
-
 }
