@@ -21,6 +21,7 @@ import org.testcontainers.containers.Container;
 import org.testcontainers.containers.KafkaContainer;
 
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -53,7 +54,7 @@ class KafkaLagServiceTest {
     @BeforeEach
     void startServer() {
         kafkaProperties = new KafkaProperties();
-        offsetsReader = mock(ConsumerOffsetsReader.class);
+        offsetsReader = spy(new ConsumerOffsetsReader(adminClient, Clock.systemDefaultZone()));
         adminClient = mock(AdminClient.class);
         lagService = spy(new KafkaLagService(kafkaProperties, offsetsReader, adminClient));
     }
@@ -70,7 +71,6 @@ class KafkaLagServiceTest {
         consumerProps.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         consumerProps.put("bootstrap.servers", kafkaContainer.getBootstrapServers());
         kafkaProperties.setConsumer(consumerProps);
-        //System.setProperty("kafkaBootstrapServers", kafkaContainer.getBootstrapServers());
     }
 
     @Test
